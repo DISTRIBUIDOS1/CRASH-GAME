@@ -4,14 +4,17 @@ import * as PIXI from 'pixi.js';
 const Game = ({ multiplier, status }) => {
   const gameRef = useRef(null);
   const appRef = useRef(null);
-  const planeRef = useRef(null);
   const multiplierTextRef = useRef(null);
-  const animationFrameId = useRef(null); // ID del requestAnimationFrame
+  const planeRef = useRef(null);
+  
+  // Guardamos la posición inicial para el reseteo
+  const START_X = 100;
+  const START_Y = 300;
 
-  // useEffect para inicializar la aplicación de Pixi.js (se ejecuta solo una vez)
+  // 1. Inicializa la aplicación de Pixi.js (corre una sola vez)
   useEffect(() => {
     const app = new PIXI.Application();
-    appRef.current = app; // Guardar la instancia de la app en un ref
+    appRef.current = app;
 
     async function initPixiElements() {
       await app.init({ width: 800, height: 400, backgroundColor: 0x1a2a3a });
@@ -20,16 +23,16 @@ const Game = ({ multiplier, status }) => {
       }
 
       // Cargar la textura del avión
-      // Asegúrate de que tu imagen 'plane.png' esté en la carpeta 'public'
+      // Nota: Aquí se usará la imagen 'plane.png' que pusiste en la carpeta public
       const planeTexture = await PIXI.Assets.load('/plane.png');
       const planeSprite = new PIXI.Sprite(planeTexture);
-      planeSprite.anchor.set(0.5); // Centrar el ancla
-      planeSprite.x = 100; // Posición inicial
-      planeSprite.y = 300; // Posición inicial
-      planeSprite.scale.set(0.2); // Ajusta la escala si es necesario
+      planeSprite.anchor.set(0.5); 
+      planeSprite.x = START_X; 
+      planeSprite.y = START_Y; 
+      planeSprite.scale.set(0.2); 
       app.stage.addChild(planeSprite);
-      planeRef.current = planeSprite; // Guardar el sprite del avión en un ref
-
+      planeRef.current = planeSprite; 
+      
       // Configurar y agregar el texto del multiplicador
       const style = new PIXI.TextStyle({
         fontFamily: 'Arial',
@@ -48,7 +51,7 @@ const Game = ({ multiplier, status }) => {
       multiplierText.x = app.canvas.width / 2;
       multiplierText.y = app.canvas.height / 2;
       app.stage.addChild(multiplierText);
-      multiplierTextRef.current = multiplierText; // Guardar el texto en un ref
+      multiplierTextRef.current = multiplierText; 
 
       // Iniciar el ticker de Pixi para renderizado continuo
       app.ticker.start();
@@ -56,53 +59,37 @@ const Game = ({ multiplier, status }) => {
 
     initPixiElements();
 
-    // Función de limpieza para destruir la aplicación de Pixi al desmontar el componente
     return () => {
       if (appRef.current) {
         appRef.current.destroy(true);
-        appRef.current = null;
-      }
-      if (animationFrameId.current) { // Asegúrate de limpiar cualquier requestAnimationFrame pendiente
-        cancelAnimationFrame(animationFrameId.current);
       }
     };
-  }, []); // Dependencia vacía: se ejecuta solo una vez al montar
+  }, []); 
 
-  // useEffect para controlar el movimiento del avión según el estado del juego
+  // 2. Controla el movimiento del avión basado en el multiplicador y el estado
   useEffect(() => {
-    if (!planeRef.current) return; // Asegurarse de que el avión ya esté cargado
+    if (planeRef.current) {
+      if (status === 'running') {
+        // Mueve el avión basándose en el valor del multiplicador del servidor
+        // Ajusta el factor (2.5) para cambiar la distancia que recorre
+        const moveFactor = multiplier * 2.5; 
+        planeRef.current.x = START_X + moveFactor;
+        planeRef.current.y = START_Y - moveFactor;
 
-    if (status === 'playing') {
-      // Reiniciar la posición del avión al inicio del juego
-      planeRef.current.x = 100;
-      planeRef.current.y = 300;
-
-      // Iniciar la animación
-      const animatePlane = () => {
-        if (planeRef.current && status === 'playing') { // Verifica el status aquí también
-          planeRef.current.x += 0.2; // Velocidad horizontal
-          planeRef.current.y -= 0.2; // Velocidad vertical (hacia arriba)
-          animationFrameId.current = requestAnimationFrame(animatePlane);
-        }
-      };
-      animationFrameId.current = requestAnimationFrame(animatePlane);
-
-    } else if (status === 'crashed' || status === 'waiting') {
-      // Detener la animación y resetear posición cuando el juego termina o espera
-      if (animationFrameId.current) {
-        cancelAnimationFrame(animationFrameId.current);
+      } else if (status === 'betting' || status === 'ended' || status === 'idle') {
+        // Restablece la posición al inicio
+        planeRef.current.x = START_X;
+        planeRef.current.y = START_Y;
       }
-      planeRef.current.x = 100; // Restablecer a la posición inicial
-      planeRef.current.y = 300; // Restablecer a la posición inicial
     }
-  }, [status]); // Este efecto se ejecuta cada vez que 'status' cambia
+  }, [multiplier, status]); // Se actualiza con cada 'tick' del servidor
 
-  // useEffect para actualizar el texto del multiplicador
+  // 3. Actualiza el texto del multiplicador
   useEffect(() => {
     if (multiplierTextRef.current) {
       multiplierTextRef.current.text = `x${multiplier.toFixed(2)}`;
     }
-  }, [multiplier]); // Este efecto se ejecuta cada vez que 'multiplier' cambia
+  }, [multiplier]); 
 
   return <div ref={gameRef} className="game-container"></div>;
 };
