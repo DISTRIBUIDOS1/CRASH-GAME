@@ -93,8 +93,11 @@
       ctx.fillText(multiplier.toFixed(2) + "x", 20, 30);
 
       if (running && !crashed) {
-        x += 0.5;   // derecha
-        y -= 0.1;   // arriba
+        x += 0.3;   // derecha
+        y -= 0.2;   // arriba
+
+        if (x > canvas.width - 100) x = canvas.width - 100;
+        if (y < 20) y = 20;
       }
 
       requestAnimationFrame(draw);
