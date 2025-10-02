@@ -105,7 +105,6 @@
 
     plane.onload = () => draw();
 
-    // --- Eventos del servidor ---
     socket.on("welcome", data => {
       document.getElementById("status").innerText =
         "Conectado. Estado actual: " + data.current.status;
@@ -137,26 +136,25 @@
       crashed = true;
       running = false;
       document.getElementById("status").innerText =
-        "💥 Crash at " + data.crashAt.toFixed(2) + "x!";
+        " Crash at " + data.crashAt.toFixed(2) + "x!";
     });
 
     socket.on("bet_accepted", data => {
-      alert("✅ Apuesta aceptada: $" + data.amount);
+      alert(" Apuesta aceptada: $" + data.amount);
     });
 
     socket.on("bet_rejected", data => {
-      alert("❌ Apuesta rechazada: " + data.reason);
+      alert("Apuesta rechazada: " + data.reason);
     });
 
     socket.on("cashed_out", data => {
-      alert("💰 Cashout en " + data.cashedAt + "x -> Ganancia: $" + data.payout);
+      alert(" Cashout en " + data.cashedAt + "x -> Ganancia: $" + data.payout);
     });
 
     socket.on("cashout_failed", data => {
-      alert("❌ Cashout fallido: " + data.reason);
+      alert(" Cashout fallido: " + data.reason);
     });
 
-    // --- Acciones del jugador ---
     function placeBet() {
       const amount = Number(document.getElementById("betAmount").value);
       socket.emit("place_bet", { amount });

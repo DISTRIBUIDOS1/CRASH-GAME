@@ -15,7 +15,7 @@ app.get("/", (req, res) => {
 const TICK_MS = 500;            
 const BETTING_SECONDS = 9;      
 const LOCK_SECONDS = 1;         
-const MAX_CRASH = 20.0;       
+const MAX_CRASH = 10.0;       
 
 let roundId = 0;
 let state = createEmptyRoundState();

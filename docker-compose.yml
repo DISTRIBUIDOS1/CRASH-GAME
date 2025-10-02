@@ -20,11 +20,7 @@ services:
       - ./db-primary/data:/var/lib/postgresql/data
       - ./db-primary/postgresql.conf:/etc/postgresql/postgresql.conf
       - ./db-primary/pg_hba.conf:/var/lib/postgresql/data/pg_hba.conf
-    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
-    ports:
-      - "5432:5432"
-    networks:
-      - labnet
+      - ./db-primary/schema.sql:/docker-entrypoint-initdb.d/schema.sql  
 
   db-replica1:
     image: postgres:14
