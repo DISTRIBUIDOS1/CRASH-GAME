@@ -1,11 +1,168 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Juego del Avión</title>
-  </head>
-  <body>
-    <noscript>You need to enable JavaScript to run this app.</noscript>
-    <div id="root"></div> </body>
+<head>
+  <meta charset="UTF-8" />
+  <title>Crash Game</title>
+  <style>
+    body {
+      background-color: #121212;
+      color: white;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+    }
+    canvas {
+      margin-top: 20px;
+      border: 2px solid white;
+      border-radius: 10px;
+      background: linear-gradient(to top, #1a1a1a, #333);
+    }
+    .controls {
+      margin-top: 15px;
+    }
+    input {
+      width: 100px;
+      padding: 8px;
+      margin-right: 5px;
+      border-radius: 5px;
+      border: none;
+    }
+    button {
+      margin: 5px;
+      padding: 10px 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .bet { background: #4caf50; color: white; }
+    .cashout { background: #f44336; color: white; }
+    #status {
+      margin-top: 10px;
+      font-size: 18px;
+    }
+  </style>
+</head>
+<body>
+  <h1>🚀 Crash Game</h1>
+  <canvas id="gameCanvas" width="600" height="400"></canvas>
+
+  <div class="controls">
+    <input type="number" id="betAmount" placeholder="Bet amount"/>
+    <button class="bet" onclick="placeBet()">Place Bet</button>
+    <button class="cashout" onclick="cashout()">Cashout</button>
+  </div>
+
+  <div id="status">Esperando ronda...</div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const plane = new Image();
+    plane.src = "plane.png"; 
+
+    let multiplier = 0.6;
+    let x = 50;
+    let y = canvas.height - 90;
+    let running = false;
+    let crashed = false;
+
+    function resetPlane() {
+      x = 50;
+      y = canvas.height - 80;
+      multiplier = 0.8;
+      running = false;
+      crashed = false;
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // avión
+      if (!crashed) {
+        ctx.drawImage(plane, x, y, 80, 60);
+      }
+
+      // multiplicador
+      ctx.fillStyle = "white";
+      ctx.font = "22px Arial";
+      ctx.fillText(multiplier.toFixed(2) + "x", 20, 30);
+
+      if (running && !crashed) {
+        x += 0.3;   // derecha
+        y -= 0.2;   // arriba
+
+        if (x > canvas.width - 100) x = canvas.width - 100;
+        if (y < 20) y = 20;
+      }
+
+      requestAnimationFrame(draw);
+    }
+
+    plane.onload = () => draw();
+
+    socket.on("welcome", data => {
+      document.getElementById("status").innerText =
+        "Conectado. Estado actual: " + data.current.status;
+    });
+
+    socket.on("round_start", data => {
+      resetPlane();
+      document.getElementById("status").innerText =
+        "Nueva ronda! Tiempo para apostar: " + data.bettingSeconds + "s";
+    });
+
+    socket.on("bet_countdown", data => {
+      document.getElementById("status").innerText =
+        "Tiempo para apostar: " + data.secondsLeft + "s";
+    });
+
+    socket.on("bet_locked", () => {
+      document.getElementById("status").innerText = "Apuestas cerradas!";
+    });
+
+    socket.on("tick", data => {
+      multiplier = data.multiplier;
+      if (data.status === "running") {
+        running = true;
+      }
+    });
+
+    socket.on("round_end", data => {
+      crashed = true;
+      running = false;
+      document.getElementById("status").innerText =
+        " Crash at " + data.crashAt.toFixed(2) + "x!";
+    });
+
+    socket.on("bet_accepted", data => {
+      alert(" Apuesta aceptada: $" + data.amount);
+    });
+
+    socket.on("bet_rejected", data => {
+      alert("Apuesta rechazada: " + data.reason);
+    });
+
+    socket.on("cashed_out", data => {
+      alert(" Cashout en " + data.cashedAt + "x -> Ganancia: $" + data.payout);
+    });
+
+    socket.on("cashout_failed", data => {
+      alert(" Cashout fallido: " + data.reason);
+    });
+
+    function placeBet() {
+      const amount = Number(document.getElementById("betAmount").value);
+      socket.emit("place_bet", { amount });
+    }
+
+    function cashout() {
+      socket.emit("cashout");
+    }
+  </script>
+</body>
 </html>
